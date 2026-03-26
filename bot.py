@@ -135,7 +135,6 @@ async def products(call: CallbackQuery):
     _, cat, brand = call.data.split(":")
 
     catalog = load_json(CATALOG_FILE)
-
     items = catalog.get(cat, {}).get(brand, {})
 
     if not items:
@@ -165,9 +164,19 @@ async def admin(msg: Message):
         [InlineKeyboardButton(text="➕ Добавить", callback_data="add")],
         [InlineKeyboardButton(text="✏️ Редактировать", callback_data="edit")],
         [InlineKeyboardButton(text="❌ Удалить", callback_data="del")],
-        [InlineKeyboardButton(text="📢 Новость", callback_data="news")]
+        [InlineKeyboardButton(text="📢 Новость", callback_data="news")],
+        [InlineKeyboardButton(text="👥 Пользователи", callback_data="users_count")]
     ])
     await msg.answer("⚙️ Админка", reply_markup=kb)
+
+# =======================
+# 👥 ПОЛЬЗОВАТЕЛИ
+# =======================
+@dp.callback_query(F.data == "users_count")
+async def users_count(call: CallbackQuery):
+    await call.answer()
+    users = load_json(USERS_FILE)
+    await call.message.answer(f"👥 Пользователей: <b>{len(users)}</b>")
 
 # =======================
 # ДОБАВЛЕНИЕ
