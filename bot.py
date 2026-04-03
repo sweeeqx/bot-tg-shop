@@ -236,19 +236,6 @@ async def add_photo(msg: Message, state: FSMContext):
 # =======================
 # УДАЛЕНИЕ
 # =======================
-@dp.callback_query(F.data == "del")
-async def delete(call: CallbackQuery):
-    await call.answer()
-    catalog = load_json(CATALOG_FILE)
-
-    kb = []
-    for c in catalog:
-        for b in catalog[c]:
-            for pid, p in catalog[c][b].items():
-                kb.append([InlineKeyboardButton(text=p["name"], callback_data=f"del:{pid}")])
-
-    await call.message.answer("Выбери товар:", reply_markup=InlineKeyboardMarkup(inline_keyboard=kb))
-
 @dp.callback_query(F.data.startswith("del:"))
 async def delete_item(call: CallbackQuery):
     await call.answer()
@@ -256,13 +243,51 @@ async def delete_item(call: CallbackQuery):
 
     catalog = load_json(CATALOG_FILE)
 
+    deleted = False
+
     for c in list(catalog):
         for b in list(catalog[c]):
             if pid in catalog[c][b]:
                 del catalog[c][b][pid]
+                deleted = True
+
+                # удаляем пустые категории/бренды
+                if not catalog[c][b]:
+                    del catalog[c][b]
+                if not catalog[c]:
+                    del catalog[c]
+
+                break
 
     save_json(CATALOG_FILE, catalog)
-    await call.message.answer("✅ Удалено")
+
+    # ❗ удаляем старое сообщение с кнопками
+    await call.message.delete()
+
+    if deleted:
+        await call.message.answer("✅ Товар полностью удалён")
+    else:
+        await call.message.answer("❌ Товар не найден")
+
+    # 🔄 показываем обновлённый список
+    kb = []
+    for c in catalog:
+        for b in catalog[c]:
+            for pid, p in catalog[c][b].items():
+                kb.append([
+                    InlineKeyboardButton(
+                        text=p.get("name", "Без названия"),
+                        callback_data=f"del:{pid}"
+                    )
+                ])
+
+    if kb:
+        await call.message.answer(
+            "🗑 Обновлённый список товаров:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=kb)
+        )
+    else:
+        await call.message.answer("📦 Товаров больше нет")
 
 # =======================
 # РЕДАКТИРОВАНИЕ
