@@ -11,9 +11,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 
-# =======================
-# НАСТРОЙКИ
-# =======================
 TOKEN = "8563043264:AAFgqebPqB_OFtksfOD3AKqdPrQBqEksIpM"
 ADMIN_ID = 1140430618
 MANAGER = "@sweeeqx"
@@ -92,7 +89,6 @@ async def start(msg: Message):
 @dp.callback_query(F.data == "menu_cat")
 async def categories(call: CallbackQuery):
     await call.answer()
-
     catalog = load_json(CATALOG_FILE)
 
     if not catalog:
@@ -234,15 +230,27 @@ async def add_photo(msg: Message, state: FSMContext):
     await state.clear()
 
 # =======================
-# УДАЛЕНИЕ
+# УДАЛЕНИЕ (ПОЛНОЕ)
 # =======================
+@dp.callback_query(F.data == "del")
+async def delete(call: CallbackQuery):
+    await call.answer()
+    catalog = load_json(CATALOG_FILE)
+
+    kb = []
+    for c in catalog:
+        for b in catalog[c]:
+            for pid, p in catalog[c][b].items():
+                kb.append([InlineKeyboardButton(text=p["name"], callback_data=f"del:{pid}")])
+
+    await call.message.answer("Выбери товар:", reply_markup=InlineKeyboardMarkup(inline_keyboard=kb))
+
 @dp.callback_query(F.data.startswith("del:"))
 async def delete_item(call: CallbackQuery):
     await call.answer()
     pid = call.data.split(":")[1]
 
     catalog = load_json(CATALOG_FILE)
-
     deleted = False
 
     for c in list(catalog):
@@ -251,43 +259,20 @@ async def delete_item(call: CallbackQuery):
                 del catalog[c][b][pid]
                 deleted = True
 
-                # удаляем пустые категории/бренды
                 if not catalog[c][b]:
                     del catalog[c][b]
                 if not catalog[c]:
                     del catalog[c]
-
                 break
 
     save_json(CATALOG_FILE, catalog)
 
-    # ❗ удаляем старое сообщение с кнопками
     await call.message.delete()
 
     if deleted:
-        await call.message.answer("✅ Товар полностью удалён")
+        await call.message.answer("✅ Товар удалён")
     else:
-        await call.message.answer("❌ Товар не найден")
-
-    # 🔄 показываем обновлённый список
-    kb = []
-    for c in catalog:
-        for b in catalog[c]:
-            for pid, p in catalog[c][b].items():
-                kb.append([
-                    InlineKeyboardButton(
-                        text=p.get("name", "Без названия"),
-                        callback_data=f"del:{pid}"
-                    )
-                ])
-
-    if kb:
-        await call.message.answer(
-            "🗑 Обновлённый список товаров:",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=kb)
-        )
-    else:
-        await call.message.answer("📦 Товаров больше нет")
+        await call.message.answer("❌ Ошибка удаления")
 
 # =======================
 # РЕДАКТИРОВАНИЕ
@@ -352,7 +337,7 @@ async def news_start(call: CallbackQuery, state: FSMContext):
 async def news_text(msg: Message, state: FSMContext):
     await state.update_data(text=msg.text)
     await state.set_state(News.photo)
-    await msg.answer("Отправь фото:")
+    await msg.answer("Фото:")
 
 @dp.message(News.photo)
 async def news_send(msg: Message, state: FSMContext):
@@ -360,7 +345,6 @@ async def news_send(msg: Message, state: FSMContext):
     users = load_json(USERS_FILE)
 
     sent = 0
-
     for uid in users:
         try:
             await bot.send_photo(
