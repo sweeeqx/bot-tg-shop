@@ -14,7 +14,7 @@ from aiogram.client.default import DefaultBotProperties
 TOKEN = "8563043264:AAFgqebPqB_OFtksfOD3AKqdPrQBqEksIpM"
 ADMIN_ID = 1140430618
 MANAGER = "@sweeeqx"
-CHANNEL_LINK = "https://t.me/+s_G9p6BFVwBlNzZh"
+CHANNEL_LINK = "https://t.me/+U82CidH7uzA2ZWYx"
 
 CATALOG_FILE = "catalog.json"
 USERS_FILE = "users.json"
